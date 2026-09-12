@@ -24,10 +24,6 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private PieceSide currentTurn = PieceSide.Player;
     [SerializeField] private TurnActionState turnActionState = TurnActionState.Action;
 
-    [Header("CPU")]
-    [SerializeField] private bool enemyCpuEnabled = true;
-    [SerializeField] private float cpuMoveDelay = 0.6f;
-
     [Header("Game State")]
     [SerializeField] private bool isGameOver;
     [SerializeField] private PieceSide winner;
@@ -35,6 +31,7 @@ public class ChessBoard : MonoBehaviour
     [Header("Board References")]
     [SerializeField] private BoardTile tilePrefab;
     [SerializeField] private Camera boardCamera;
+    [SerializeField] private GameManager gameManager;
 
     [Header("White Piece Prefabs")]
     [SerializeField] private ChessPiece pawnWhitePrefab;
@@ -75,6 +72,11 @@ public class ChessBoard : MonoBehaviour
         isGameOver = false;
         cpuIsActing = false;
 
+        if (gameManager == null)
+        {
+            gameManager = FindFirstObjectByType<GameManager>();
+        }
+
         CreateBoard();
         SpawnStartingPieces();
         CenterCameraOnBoard();
@@ -93,11 +95,11 @@ public class ChessBoard : MonoBehaviour
             return;
         }
 
-        if (enemyCpuEnabled && currentTurn == PieceSide.Enemy)
+        if (IsCurrentTurnCpu())
         {
             if (!cpuIsActing)
             {
-                StartCoroutine(PlayCpuTurn());
+                StartCoroutine(PlayCpuTurn(currentTurn));
             }
 
             return;
@@ -111,7 +113,12 @@ public class ChessBoard : MonoBehaviour
         HandleMouseClick();
     }
 
-    private IEnumerator PlayCpuTurn()
+    private bool IsCurrentTurnCpu()
+    {
+        return gameManager != null && gameManager.IsRandomCpu(currentTurn);
+    }
+
+    private IEnumerator PlayCpuTurn(PieceSide cpuSide)
     {
         cpuIsActing = true;
 
@@ -123,7 +130,7 @@ public class ChessBoard : MonoBehaviour
             {
                 ChessPiece piece = pieces[x, y];
 
-                if (piece == null || piece.Side != PieceSide.Enemy)
+                if (piece == null || piece.Side != cpuSide)
                 {
                     continue;
                 }
@@ -138,7 +145,7 @@ public class ChessBoard : MonoBehaviour
 
         if (movablePieces.Count == 0)
         {
-            Debug.Log("CPU has no legal moves. Turn skipped.");
+            Debug.Log($"{cpuSide} CPU has no legal moves. Turn skipped.");
             cpuIsActing = false;
             RequestTurnChange();
             yield break;
@@ -147,9 +154,10 @@ public class ChessBoard : MonoBehaviour
         ChessPiece chosenPiece = movablePieces[Random.Range(0, movablePieces.Count)];
         SelectPiece(chosenPiece);
 
-        yield return new WaitForSeconds(cpuMoveDelay);
+        float delay = gameManager != null ? gameManager.CpuMoveDelay : 0.6f;
+        yield return new WaitForSeconds(delay);
 
-        if (isGameOver || currentTurn != PieceSide.Enemy || selectedPiece != chosenPiece)
+        if (isGameOver || currentTurn != cpuSide || selectedPiece != chosenPiece)
         {
             cpuIsActing = false;
             yield break;
@@ -485,6 +493,7 @@ public class ChessBoard : MonoBehaviour
         }
 
         ClearSelection();
+        cpuIsActing = false;
 
         currentTurn = currentTurn == PieceSide.Player
             ? PieceSide.Enemy
