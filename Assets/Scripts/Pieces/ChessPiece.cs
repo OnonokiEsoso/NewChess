@@ -32,13 +32,17 @@ public class ChessPiece : MonoBehaviour
         }
     }
 
-    public void Initialize(int boardX, int boardY, PieceSide side, Color pieceColor)
+    public void Initialize(int boardX, int boardY, PieceSide side)
     {
         Side = side;
-        SetNormalColor(pieceColor);
         SetBoardPosition(boardX, boardY);
         HasMoved = false;
         IsSelected = false;
+
+        if (spriteRenderer != null)
+        {
+            normalColor = spriteRenderer.color;
+        }
     }
 
     public void SetBoardPosition(int boardX, int boardY)
@@ -61,16 +65,6 @@ public class ChessPiece : MonoBehaviour
         if (spriteRenderer != null)
         {
             spriteRenderer.color = selected ? selectedColor : normalColor;
-        }
-    }
-
-    private void SetNormalColor(Color color)
-    {
-        normalColor = color;
-
-        if (spriteRenderer != null)
-        {
-            spriteRenderer.color = normalColor;
         }
     }
 }
