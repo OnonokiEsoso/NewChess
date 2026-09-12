@@ -23,11 +23,25 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private PieceSide currentTurn = PieceSide.Player;
     [SerializeField] private TurnActionState turnActionState = TurnActionState.Action;
 
-    [Header("References")]
+    [Header("Board References")]
     [SerializeField] private BoardTile tilePrefab;
-    [SerializeField] private ChessPiece pawnWhitePrefab;
-    [SerializeField] private ChessPiece pawnBlackPrefab;
     [SerializeField] private Camera boardCamera;
+
+    [Header("White Piece Prefabs")]
+    [SerializeField] private ChessPiece pawnWhitePrefab;
+    [SerializeField] private ChessPiece rookWhitePrefab;
+    [SerializeField] private ChessPiece knightWhitePrefab;
+    [SerializeField] private ChessPiece bishopWhitePrefab;
+    [SerializeField] private ChessPiece queenWhitePrefab;
+    [SerializeField] private ChessPiece kingWhitePrefab;
+
+    [Header("Black Piece Prefabs")]
+    [SerializeField] private ChessPiece pawnBlackPrefab;
+    [SerializeField] private ChessPiece rookBlackPrefab;
+    [SerializeField] private ChessPiece knightBlackPrefab;
+    [SerializeField] private ChessPiece bishopBlackPrefab;
+    [SerializeField] private ChessPiece queenBlackPrefab;
+    [SerializeField] private ChessPiece kingBlackPrefab;
 
     [Header("Camera Settings")]
     [SerializeField] private float cameraPadding = 0.5f;
@@ -48,7 +62,7 @@ public class ChessBoard : MonoBehaviour
         turnActionState = TurnActionState.Action;
 
         CreateBoard();
-        SpawnStartingPawns();
+        SpawnStartingPieces();
         CenterCameraOnBoard();
     }
 
@@ -92,24 +106,94 @@ public class ChessBoard : MonoBehaviour
         }
     }
 
-    private void SpawnStartingPawns()
+    private void SpawnStartingPieces()
     {
-        if (pawnWhitePrefab == null || pawnBlackPrefab == null)
+        if (boardWidth < 8 || boardHeight < 4)
         {
-            Debug.LogWarning("Pawn_W または Pawn_B Prefabが設定されていません。");
+            Debug.LogWarning("通常チェスの初期配置には横8マス以上、縦4マス以上が必要です。");
             return;
         }
 
-        int leftCenterX = (boardWidth / 2) - 1;
-        int rightCenterX = boardWidth / 2;
+        if (!ArePiecePrefabsAssigned())
+        {
+            Debug.LogWarning("白黒12種類の駒PrefabをChessBoardに設定してください。");
+            return;
+        }
 
-        int playerPawnRow = 1;
-        SpawnPiece(pawnWhitePrefab, leftCenterX, playerPawnRow, PieceSide.Player);
-        SpawnPiece(pawnWhitePrefab, rightCenterX, playerPawnRow, PieceSide.Player);
+        int startX = (boardWidth - 8) / 2;
 
-        int enemyPawnRow = boardHeight - 2;
-        SpawnPiece(pawnBlackPrefab, leftCenterX, enemyPawnRow, PieceSide.Enemy);
-        SpawnPiece(pawnBlackPrefab, rightCenterX, enemyPawnRow, PieceSide.Enemy);
+        int whiteBackRow = 0;
+        int whitePawnRow = 1;
+        int blackBackRow = boardHeight - 1;
+        int blackPawnRow = boardHeight - 2;
+
+        SpawnBackRank(
+            PieceSide.Player,
+            whiteBackRow,
+            startX,
+            rookWhitePrefab,
+            knightWhitePrefab,
+            bishopWhitePrefab,
+            queenWhitePrefab,
+            kingWhitePrefab
+        );
+
+        for (int i = 0; i < 8; i++)
+        {
+            SpawnPiece(pawnWhitePrefab, startX + i, whitePawnRow, PieceSide.Player);
+        }
+
+        SpawnBackRank(
+            PieceSide.Enemy,
+            blackBackRow,
+            startX,
+            rookBlackPrefab,
+            knightBlackPrefab,
+            bishopBlackPrefab,
+            queenBlackPrefab,
+            kingBlackPrefab
+        );
+
+        for (int i = 0; i < 8; i++)
+        {
+            SpawnPiece(pawnBlackPrefab, startX + i, blackPawnRow, PieceSide.Enemy);
+        }
+    }
+
+    private void SpawnBackRank(
+        PieceSide side,
+        int row,
+        int startX,
+        ChessPiece rookPrefab,
+        ChessPiece knightPrefab,
+        ChessPiece bishopPrefab,
+        ChessPiece queenPrefab,
+        ChessPiece kingPrefab)
+    {
+        SpawnPiece(rookPrefab, startX + 0, row, side);
+        SpawnPiece(knightPrefab, startX + 1, row, side);
+        SpawnPiece(bishopPrefab, startX + 2, row, side);
+        SpawnPiece(queenPrefab, startX + 3, row, side);
+        SpawnPiece(kingPrefab, startX + 4, row, side);
+        SpawnPiece(bishopPrefab, startX + 5, row, side);
+        SpawnPiece(knightPrefab, startX + 6, row, side);
+        SpawnPiece(rookPrefab, startX + 7, row, side);
+    }
+
+    private bool ArePiecePrefabsAssigned()
+    {
+        return pawnWhitePrefab != null &&
+               rookWhitePrefab != null &&
+               knightWhitePrefab != null &&
+               bishopWhitePrefab != null &&
+               queenWhitePrefab != null &&
+               kingWhitePrefab != null &&
+               pawnBlackPrefab != null &&
+               rookBlackPrefab != null &&
+               knightBlackPrefab != null &&
+               bishopBlackPrefab != null &&
+               queenBlackPrefab != null &&
+               kingBlackPrefab != null;
     }
 
     private void SpawnPiece(ChessPiece piecePrefab, int boardX, int boardY, PieceSide side)
