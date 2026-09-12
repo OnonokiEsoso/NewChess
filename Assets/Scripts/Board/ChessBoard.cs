@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -137,7 +138,6 @@ public class ChessBoard : MonoBehaviour
 
         Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
         Vector3 mouseWorldPosition = inputCamera.ScreenToWorldPoint(mouseScreenPosition);
-
         Collider2D[] hits = Physics2D.OverlapPointAll(mouseWorldPosition);
 
         ChessPiece clickedPiece = null;
@@ -205,44 +205,19 @@ public class ChessBoard : MonoBehaviour
 
         selectedPiece = piece;
         selectedPiece.SetSelected(true);
-        ShowPawnMoves(selectedPiece);
+        ShowLegalMoves(selectedPiece);
     }
 
-    private void ShowPawnMoves(ChessPiece piece)
+    private void ShowLegalMoves(ChessPiece piece)
     {
-        int direction = piece.ForwardDirection;
-        int forwardY = piece.BoardY + direction;
+        List<Vector2Int> legalMoves = piece.GetLegalMoves(this);
 
-        if (IsInsideBoard(piece.BoardX, forwardY) && pieces[piece.BoardX, forwardY] == null)
+        foreach (Vector2Int move in legalMoves)
         {
-            tiles[piece.BoardX, forwardY].SetMoveHighlight(true);
-
-            int doubleForwardY = piece.BoardY + (2 * direction);
-
-            if (!piece.HasMoved &&
-                IsInsideBoard(piece.BoardX, doubleForwardY) &&
-                pieces[piece.BoardX, doubleForwardY] == null)
+            if (IsInsideBoard(move.x, move.y))
             {
-                tiles[piece.BoardX, doubleForwardY].SetMoveHighlight(true);
+                tiles[move.x, move.y].SetMoveHighlight(true);
             }
-        }
-
-        ShowPawnCapture(piece, piece.BoardX - 1, forwardY);
-        ShowPawnCapture(piece, piece.BoardX + 1, forwardY);
-    }
-
-    private void ShowPawnCapture(ChessPiece piece, int targetX, int targetY)
-    {
-        if (!IsInsideBoard(targetX, targetY))
-        {
-            return;
-        }
-
-        ChessPiece targetPiece = pieces[targetX, targetY];
-
-        if (targetPiece != null && targetPiece.Side != piece.Side)
-        {
-            tiles[targetX, targetY].SetMoveHighlight(true);
         }
     }
 
@@ -312,7 +287,6 @@ public class ChessBoard : MonoBehaviour
             : PieceSide.Player;
 
         turnActionState = TurnActionState.Action;
-
         Debug.Log($"Turn changed: {currentTurn}");
     }
 
@@ -346,9 +320,19 @@ public class ChessBoard : MonoBehaviour
         }
     }
 
-    private bool IsInsideBoard(int x, int y)
+    public bool IsInsideBoard(int x, int y)
     {
         return x >= 0 && x < boardWidth && y >= 0 && y < boardHeight;
+    }
+
+    public ChessPiece GetPieceAt(int x, int y)
+    {
+        if (!IsInsideBoard(x, y) || pieces == null)
+        {
+            return null;
+        }
+
+        return pieces[x, y];
     }
 
     private Vector3 GetWorldPosition(int boardX, int boardY)
