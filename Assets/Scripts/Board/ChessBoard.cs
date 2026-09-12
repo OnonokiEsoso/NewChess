@@ -23,6 +23,10 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private PieceSide currentTurn = PieceSide.Player;
     [SerializeField] private TurnActionState turnActionState = TurnActionState.Action;
 
+    [Header("Game State")]
+    [SerializeField] private bool isGameOver;
+    [SerializeField] private PieceSide winner;
+
     [Header("Board References")]
     [SerializeField] private BoardTile tilePrefab;
     [SerializeField] private Camera boardCamera;
@@ -48,6 +52,8 @@ public class ChessBoard : MonoBehaviour
 
     public PieceSide CurrentTurn => currentTurn;
     public TurnActionState CurrentTurnActionState => turnActionState;
+    public bool IsGameOver => isGameOver;
+    public PieceSide Winner => winner;
 
     private BoardTile[,] tiles;
     private ChessPiece[,] pieces;
@@ -60,6 +66,7 @@ public class ChessBoard : MonoBehaviour
 
         currentTurn = PieceSide.Player;
         turnActionState = TurnActionState.Action;
+        isGameOver = false;
 
         CreateBoard();
         SpawnStartingPieces();
@@ -68,6 +75,11 @@ public class ChessBoard : MonoBehaviour
 
     private void Update()
     {
+        if (isGameOver)
+        {
+            return;
+        }
+
         if (turnActionState == TurnActionState.TurnChange)
         {
             ChangeTurn();
@@ -274,7 +286,7 @@ public class ChessBoard : MonoBehaviour
 
     private void SelectPiece(ChessPiece piece)
     {
-        if (piece.Side != currentTurn || turnActionState != TurnActionState.Action)
+        if (isGameOver || piece.Side != currentTurn || turnActionState != TurnActionState.Action)
         {
             return;
         }
@@ -323,12 +335,13 @@ public class ChessBoard : MonoBehaviour
 
     private void MoveSelectedPiece(int targetX, int targetY)
     {
-        if (selectedPiece == null || turnActionState != TurnActionState.Action)
+        if (isGameOver || selectedPiece == null || turnActionState != TurnActionState.Action)
         {
             return;
         }
 
         ChessPiece targetPiece = pieces[targetX, targetY];
+        bool capturedKing = false;
 
         if (targetPiece != null)
         {
@@ -338,9 +351,13 @@ public class ChessBoard : MonoBehaviour
                 return;
             }
 
+            capturedKing = targetPiece is KingPiece;
+
             Destroy(targetPiece.gameObject);
             pieces[targetX, targetY] = null;
         }
+
+        PieceSide movingSide = selectedPiece.Side;
 
         pieces[selectedPiece.BoardX, selectedPiece.BoardY] = null;
 
@@ -353,17 +370,42 @@ public class ChessBoard : MonoBehaviour
 
         pieces[targetX, targetY] = selectedPiece;
 
+        if (capturedKing)
+        {
+            EndGame(movingSide);
+            return;
+        }
+
         ClearSelection();
         RequestTurnChange();
     }
 
+    private void EndGame(PieceSide winningSide)
+    {
+        winner = winningSide;
+        isGameOver = true;
+        ClearSelection();
+
+        Debug.Log($"Game Over! Winner: {winner}");
+    }
+
     private void RequestTurnChange()
     {
+        if (isGameOver)
+        {
+            return;
+        }
+
         turnActionState = TurnActionState.TurnChange;
     }
 
     private void ChangeTurn()
     {
+        if (isGameOver)
+        {
+            return;
+        }
+
         ClearSelection();
 
         currentTurn = currentTurn == PieceSide.Player
