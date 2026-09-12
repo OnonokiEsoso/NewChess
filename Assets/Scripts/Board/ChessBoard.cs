@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class ChessBoard : MonoBehaviour
 {
@@ -19,11 +20,28 @@ public class ChessBoard : MonoBehaviour
     [Header("Camera Settings")]
     [SerializeField] private float cameraPadding = 0.5f;
 
+    private BoardTile[,] tiles;
+    private ChessPiece[,] pieces;
+    private ChessPiece selectedPiece;
+
     private void Start()
     {
+        tiles = new BoardTile[boardWidth, boardHeight];
+        pieces = new ChessPiece[boardWidth, boardHeight];
+
         CreateBoard();
         SpawnStartingPawns();
         CenterCameraOnBoard();
+    }
+
+    private void Update()
+    {
+        if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            return;
+        }
+
+        HandleMouseClick();
     }
 
     private void CreateBoard()
@@ -45,6 +63,7 @@ public class ChessBoard : MonoBehaviour
                 Color tileColor = isLightTile ? lightTileColor : darkTileColor;
 
                 tile.Initialize(x, y, tileColor);
+                tiles[x, y] = tile;
             }
         }
     }
@@ -78,6 +97,157 @@ public class ChessBoard : MonoBehaviour
         );
 
         piece.Initialize(boardX, boardY);
+        pieces[boardX, boardY] = piece;
+    }
+
+    private void HandleMouseClick()
+    {
+        Camera inputCamera = boardCamera != null ? boardCamera : Camera.main;
+        if (inputCamera == null)
+        {
+            return;
+        }
+
+        Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
+        Vector3 mouseWorldPosition = inputCamera.ScreenToWorldPoint(mouseScreenPosition);
+
+        Collider2D[] hits = Physics2D.OverlapPointAll(mouseWorldPosition);
+
+        ChessPiece clickedPiece = null;
+        BoardTile clickedTile = null;
+
+        foreach (Collider2D hit in hits)
+        {
+            if (clickedPiece == null)
+            {
+                clickedPiece = hit.GetComponent<ChessPiece>();
+            }
+
+            if (clickedTile == null)
+            {
+                clickedTile = hit.GetComponent<BoardTile>();
+            }
+        }
+
+        if (clickedPiece != null)
+        {
+            SelectPiece(clickedPiece);
+            return;
+        }
+
+        if (clickedTile != null)
+        {
+            HandleTileClick(clickedTile);
+            return;
+        }
+
+        ClearSelection();
+    }
+
+    private void SelectPiece(ChessPiece piece)
+    {
+        if (selectedPiece == piece)
+        {
+            ClearSelection();
+            return;
+        }
+
+        ClearSelection();
+
+        selectedPiece = piece;
+        selectedPiece.SetSelected(true);
+        ShowPawnMoves(selectedPiece);
+    }
+
+    private void ShowPawnMoves(ChessPiece piece)
+    {
+        int forwardY = piece.BoardY + 1;
+
+        if (IsInsideBoard(piece.BoardX, forwardY) && pieces[piece.BoardX, forwardY] == null)
+        {
+            tiles[piece.BoardX, forwardY].SetMoveHighlight(true);
+
+            int doubleForwardY = piece.BoardY + 2;
+
+            if (!piece.HasMoved &&
+                IsInsideBoard(piece.BoardX, doubleForwardY) &&
+                pieces[piece.BoardX, doubleForwardY] == null)
+            {
+                tiles[piece.BoardX, doubleForwardY].SetMoveHighlight(true);
+            }
+        }
+    }
+
+    private void HandleTileClick(BoardTile tile)
+    {
+        if (selectedPiece == null)
+        {
+            return;
+        }
+
+        if (!tile.IsHighlighted)
+        {
+            ClearSelection();
+            return;
+        }
+
+        MoveSelectedPiece(tile.X, tile.Y);
+    }
+
+    private void MoveSelectedPiece(int targetX, int targetY)
+    {
+        if (selectedPiece == null)
+        {
+            return;
+        }
+
+        pieces[selectedPiece.BoardX, selectedPiece.BoardY] = null;
+
+        selectedPiece.SetBoardPosition(targetX, targetY);
+        selectedPiece.MarkMoved();
+
+        Vector3 targetPosition = GetWorldPosition(targetX, targetY);
+        targetPosition.z = -1f;
+        selectedPiece.transform.position = targetPosition;
+
+        pieces[targetX, targetY] = selectedPiece;
+
+        ClearSelection();
+    }
+
+    private void ClearSelection()
+    {
+        if (selectedPiece != null)
+        {
+            selectedPiece.SetSelected(false);
+            selectedPiece = null;
+        }
+
+        ClearMoveHighlights();
+    }
+
+    private void ClearMoveHighlights()
+    {
+        if (tiles == null)
+        {
+            return;
+        }
+
+        for (int y = 0; y < boardHeight; y++)
+        {
+            for (int x = 0; x < boardWidth; x++)
+            {
+                if (tiles[x, y] != null)
+                {
+                    tiles[x, y].SetMoveHighlight(false);
+                }
+            }
+        }
+    }
+
+    private bool IsInsideBoard(int x, int y)
+    {
+        return x >= 0 && x < boardWidth && y >= 0 && y < boardHeight;
     }
 
     private Vector3 GetWorldPosition(int boardX, int boardY)
