@@ -12,6 +12,10 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private Color lightTileColor = new Color(0.95f, 0.95f, 0.95f);
     [SerializeField] private Color darkTileColor = new Color(0.25f, 0.25f, 0.25f);
 
+    [Header("Piece Colors")]
+    [SerializeField] private Color playerPawnColor = new Color(0.35f, 0.85f, 1f);
+    [SerializeField] private Color enemyPawnColor = new Color(0.65f, 0.25f, 0.85f);
+
     [Header("References")]
     [SerializeField] private BoardTile tilePrefab;
     [SerializeField] private ChessPiece pawnPrefab;
@@ -76,15 +80,19 @@ public class ChessBoard : MonoBehaviour
             return;
         }
 
-        int pawnRow = 1;
         int leftCenterX = (boardWidth / 2) - 1;
         int rightCenterX = boardWidth / 2;
 
-        SpawnPiece(pawnPrefab, leftCenterX, pawnRow);
-        SpawnPiece(pawnPrefab, rightCenterX, pawnRow);
+        int playerPawnRow = 1;
+        SpawnPiece(pawnPrefab, leftCenterX, playerPawnRow, PieceSide.Player, playerPawnColor);
+        SpawnPiece(pawnPrefab, rightCenterX, playerPawnRow, PieceSide.Player, playerPawnColor);
+
+        int enemyPawnRow = boardHeight - 2;
+        SpawnPiece(pawnPrefab, leftCenterX, enemyPawnRow, PieceSide.Enemy, enemyPawnColor);
+        SpawnPiece(pawnPrefab, rightCenterX, enemyPawnRow, PieceSide.Enemy, enemyPawnColor);
     }
 
-    private void SpawnPiece(ChessPiece piecePrefab, int boardX, int boardY)
+    private void SpawnPiece(ChessPiece piecePrefab, int boardX, int boardY, PieceSide side, Color pieceColor)
     {
         Vector3 spawnPosition = GetWorldPosition(boardX, boardY);
         spawnPosition.z = -1f;
@@ -96,7 +104,7 @@ public class ChessBoard : MonoBehaviour
             transform
         );
 
-        piece.Initialize(boardX, boardY);
+        piece.Initialize(boardX, boardY, side, pieceColor);
         pieces[boardX, boardY] = piece;
     }
 
@@ -131,7 +139,24 @@ public class ChessBoard : MonoBehaviour
 
         if (clickedPiece != null)
         {
-            SelectPiece(clickedPiece);
+            if (selectedPiece != null &&
+                clickedPiece.Side != selectedPiece.Side &&
+                IsInsideBoard(clickedPiece.BoardX, clickedPiece.BoardY) &&
+                tiles[clickedPiece.BoardX, clickedPiece.BoardY].IsHighlighted)
+            {
+                MoveSelectedPiece(clickedPiece.BoardX, clickedPiece.BoardY);
+                return;
+            }
+
+            if (clickedPiece.Side == PieceSide.Player)
+            {
+                SelectPiece(clickedPiece);
+            }
+            else
+            {
+                ClearSelection();
+            }
+
             return;
         }
 
@@ -146,6 +171,11 @@ public class ChessBoard : MonoBehaviour
 
     private void SelectPiece(ChessPiece piece)
     {
+        if (piece.Side != PieceSide.Player)
+        {
+            return;
+        }
+
         if (selectedPiece == piece)
         {
             ClearSelection();
@@ -161,13 +191,14 @@ public class ChessBoard : MonoBehaviour
 
     private void ShowPawnMoves(ChessPiece piece)
     {
-        int forwardY = piece.BoardY + 1;
+        int direction = piece.ForwardDirection;
+        int forwardY = piece.BoardY + direction;
 
         if (IsInsideBoard(piece.BoardX, forwardY) && pieces[piece.BoardX, forwardY] == null)
         {
             tiles[piece.BoardX, forwardY].SetMoveHighlight(true);
 
-            int doubleForwardY = piece.BoardY + 2;
+            int doubleForwardY = piece.BoardY + (2 * direction);
 
             if (!piece.HasMoved &&
                 IsInsideBoard(piece.BoardX, doubleForwardY) &&
@@ -175,6 +206,24 @@ public class ChessBoard : MonoBehaviour
             {
                 tiles[piece.BoardX, doubleForwardY].SetMoveHighlight(true);
             }
+        }
+
+        ShowPawnCapture(piece, piece.BoardX - 1, forwardY);
+        ShowPawnCapture(piece, piece.BoardX + 1, forwardY);
+    }
+
+    private void ShowPawnCapture(ChessPiece piece, int targetX, int targetY)
+    {
+        if (!IsInsideBoard(targetX, targetY))
+        {
+            return;
+        }
+
+        ChessPiece targetPiece = pieces[targetX, targetY];
+
+        if (targetPiece != null && targetPiece.Side != piece.Side)
+        {
+            tiles[targetX, targetY].SetMoveHighlight(true);
         }
     }
 
@@ -199,6 +248,20 @@ public class ChessBoard : MonoBehaviour
         if (selectedPiece == null)
         {
             return;
+        }
+
+        ChessPiece targetPiece = pieces[targetX, targetY];
+
+        if (targetPiece != null)
+        {
+            if (targetPiece.Side == selectedPiece.Side)
+            {
+                ClearSelection();
+                return;
+            }
+
+            Destroy(targetPiece.gameObject);
+            pieces[targetX, targetY] = null;
         }
 
         pieces[selectedPiece.BoardX, selectedPiece.BoardY] = null;
