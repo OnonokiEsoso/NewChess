@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -22,6 +23,10 @@ public class ChessBoard : MonoBehaviour
     [Header("Turn")]
     [SerializeField] private PieceSide currentTurn = PieceSide.Player;
     [SerializeField] private TurnActionState turnActionState = TurnActionState.Action;
+
+    [Header("CPU")]
+    [SerializeField] private bool enemyCpuEnabled = true;
+    [SerializeField] private float cpuMoveDelay = 0.6f;
 
     [Header("Game State")]
     [SerializeField] private bool isGameOver;
@@ -58,6 +63,7 @@ public class ChessBoard : MonoBehaviour
     private BoardTile[,] tiles;
     private ChessPiece[,] pieces;
     private ChessPiece selectedPiece;
+    private bool cpuIsActing;
 
     private void Start()
     {
@@ -67,6 +73,7 @@ public class ChessBoard : MonoBehaviour
         currentTurn = PieceSide.Player;
         turnActionState = TurnActionState.Action;
         isGameOver = false;
+        cpuIsActing = false;
 
         CreateBoard();
         SpawnStartingPieces();
@@ -86,12 +93,82 @@ public class ChessBoard : MonoBehaviour
             return;
         }
 
+        if (enemyCpuEnabled && currentTurn == PieceSide.Enemy)
+        {
+            if (!cpuIsActing)
+            {
+                StartCoroutine(PlayCpuTurn());
+            }
+
+            return;
+        }
+
         if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
         {
             return;
         }
 
         HandleMouseClick();
+    }
+
+    private IEnumerator PlayCpuTurn()
+    {
+        cpuIsActing = true;
+
+        List<ChessPiece> movablePieces = new List<ChessPiece>();
+
+        for (int y = 0; y < boardHeight; y++)
+        {
+            for (int x = 0; x < boardWidth; x++)
+            {
+                ChessPiece piece = pieces[x, y];
+
+                if (piece == null || piece.Side != PieceSide.Enemy)
+                {
+                    continue;
+                }
+
+                List<Vector2Int> legalMoves = piece.GetLegalMoves(this);
+                if (legalMoves.Count > 0)
+                {
+                    movablePieces.Add(piece);
+                }
+            }
+        }
+
+        if (movablePieces.Count == 0)
+        {
+            Debug.Log("CPU has no legal moves. Turn skipped.");
+            cpuIsActing = false;
+            RequestTurnChange();
+            yield break;
+        }
+
+        ChessPiece chosenPiece = movablePieces[Random.Range(0, movablePieces.Count)];
+        SelectPiece(chosenPiece);
+
+        yield return new WaitForSeconds(cpuMoveDelay);
+
+        if (isGameOver || currentTurn != PieceSide.Enemy || selectedPiece != chosenPiece)
+        {
+            cpuIsActing = false;
+            yield break;
+        }
+
+        List<Vector2Int> chosenMoves = chosenPiece.GetLegalMoves(this);
+
+        if (chosenMoves.Count == 0)
+        {
+            ClearSelection();
+            cpuIsActing = false;
+            RequestTurnChange();
+            yield break;
+        }
+
+        Vector2Int target = chosenMoves[Random.Range(0, chosenMoves.Count)];
+        MoveSelectedPiece(target.x, target.y);
+
+        cpuIsActing = false;
     }
 
     private void CreateBoard()
@@ -384,6 +461,7 @@ public class ChessBoard : MonoBehaviour
     {
         winner = winningSide;
         isGameOver = true;
+        cpuIsActing = false;
         ClearSelection();
 
         Debug.Log($"Game Over! Winner: {winner}");
