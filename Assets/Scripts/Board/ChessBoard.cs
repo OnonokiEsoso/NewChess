@@ -7,6 +7,10 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private int boardHeight = 10;
     [SerializeField] private float tileSize = 1f;
 
+    [Header("Tile Colors")]
+    [SerializeField] private Color lightTileColor = new Color(0.95f, 0.95f, 0.95f);
+    [SerializeField] private Color darkTileColor = new Color(0.25f, 0.25f, 0.25f);
+
     [Header("References")]
     [SerializeField] private BoardTile tilePrefab;
     [SerializeField] private Camera boardCamera;
@@ -39,7 +43,10 @@ public class ChessBoard : MonoBehaviour
                     transform
                 );
 
-                tile.Initialize(x, y);
+                bool isLightTile = (x + y) % 2 == 0;
+                Color tileColor = isLightTile ? lightTileColor : darkTileColor;
+
+                tile.Initialize(x, y, tileColor);
             }
         }
     }
