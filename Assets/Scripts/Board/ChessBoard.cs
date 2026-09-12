@@ -1,6 +1,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+public enum TurnActionState
+{
+    Action,
+    TurnChange
+}
+
 public class ChessBoard : MonoBehaviour
 {
     [Header("Board Settings")]
@@ -16,6 +22,10 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private Color playerPawnColor = new Color(0.35f, 0.85f, 1f);
     [SerializeField] private Color enemyPawnColor = new Color(0.65f, 0.25f, 0.85f);
 
+    [Header("Turn")]
+    [SerializeField] private PieceSide currentTurn = PieceSide.Player;
+    [SerializeField] private TurnActionState turnActionState = TurnActionState.Action;
+
     [Header("References")]
     [SerializeField] private BoardTile tilePrefab;
     [SerializeField] private ChessPiece pawnPrefab;
@@ -23,6 +33,9 @@ public class ChessBoard : MonoBehaviour
 
     [Header("Camera Settings")]
     [SerializeField] private float cameraPadding = 0.5f;
+
+    public PieceSide CurrentTurn => currentTurn;
+    public TurnActionState CurrentTurnActionState => turnActionState;
 
     private BoardTile[,] tiles;
     private ChessPiece[,] pieces;
@@ -33,6 +46,9 @@ public class ChessBoard : MonoBehaviour
         tiles = new BoardTile[boardWidth, boardHeight];
         pieces = new ChessPiece[boardWidth, boardHeight];
 
+        currentTurn = PieceSide.Player;
+        turnActionState = TurnActionState.Action;
+
         CreateBoard();
         SpawnStartingPawns();
         CenterCameraOnBoard();
@@ -40,6 +56,12 @@ public class ChessBoard : MonoBehaviour
 
     private void Update()
     {
+        if (turnActionState == TurnActionState.TurnChange)
+        {
+            ChangeTurn();
+            return;
+        }
+
         if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
         {
             return;
@@ -148,7 +170,7 @@ public class ChessBoard : MonoBehaviour
                 return;
             }
 
-            if (clickedPiece.Side == PieceSide.Player)
+            if (clickedPiece.Side == currentTurn)
             {
                 SelectPiece(clickedPiece);
             }
@@ -171,7 +193,7 @@ public class ChessBoard : MonoBehaviour
 
     private void SelectPiece(ChessPiece piece)
     {
-        if (piece.Side != PieceSide.Player)
+        if (piece.Side != currentTurn || turnActionState != TurnActionState.Action)
         {
             return;
         }
@@ -245,7 +267,7 @@ public class ChessBoard : MonoBehaviour
 
     private void MoveSelectedPiece(int targetX, int targetY)
     {
-        if (selectedPiece == null)
+        if (selectedPiece == null || turnActionState != TurnActionState.Action)
         {
             return;
         }
@@ -276,6 +298,25 @@ public class ChessBoard : MonoBehaviour
         pieces[targetX, targetY] = selectedPiece;
 
         ClearSelection();
+        RequestTurnChange();
+    }
+
+    private void RequestTurnChange()
+    {
+        turnActionState = TurnActionState.TurnChange;
+    }
+
+    private void ChangeTurn()
+    {
+        ClearSelection();
+
+        currentTurn = currentTurn == PieceSide.Player
+            ? PieceSide.Enemy
+            : PieceSide.Player;
+
+        turnActionState = TurnActionState.Action;
+
+        Debug.Log($"Turn changed: {currentTurn}");
     }
 
     private void ClearSelection()
