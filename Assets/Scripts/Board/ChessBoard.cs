@@ -18,17 +18,14 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] private Color lightTileColor = new Color(0.95f, 0.95f, 0.95f);
     [SerializeField] private Color darkTileColor = new Color(0.25f, 0.25f, 0.25f);
 
-    [Header("Piece Colors")]
-    [SerializeField] private Color playerPawnColor = new Color(0.35f, 0.85f, 1f);
-    [SerializeField] private Color enemyPawnColor = new Color(0.65f, 0.25f, 0.85f);
-
     [Header("Turn")]
     [SerializeField] private PieceSide currentTurn = PieceSide.Player;
     [SerializeField] private TurnActionState turnActionState = TurnActionState.Action;
 
     [Header("References")]
     [SerializeField] private BoardTile tilePrefab;
-    [SerializeField] private ChessPiece pawnPrefab;
+    [SerializeField] private ChessPiece pawnWhitePrefab;
+    [SerializeField] private ChessPiece pawnBlackPrefab;
     [SerializeField] private Camera boardCamera;
 
     [Header("Camera Settings")]
@@ -96,9 +93,9 @@ public class ChessBoard : MonoBehaviour
 
     private void SpawnStartingPawns()
     {
-        if (pawnPrefab == null)
+        if (pawnWhitePrefab == null || pawnBlackPrefab == null)
         {
-            Debug.LogWarning("Pawn Prefabが設定されていません。");
+            Debug.LogWarning("Pawn_W または Pawn_B Prefabが設定されていません。");
             return;
         }
 
@@ -106,15 +103,15 @@ public class ChessBoard : MonoBehaviour
         int rightCenterX = boardWidth / 2;
 
         int playerPawnRow = 1;
-        SpawnPiece(pawnPrefab, leftCenterX, playerPawnRow, PieceSide.Player, playerPawnColor);
-        SpawnPiece(pawnPrefab, rightCenterX, playerPawnRow, PieceSide.Player, playerPawnColor);
+        SpawnPiece(pawnWhitePrefab, leftCenterX, playerPawnRow, PieceSide.Player);
+        SpawnPiece(pawnWhitePrefab, rightCenterX, playerPawnRow, PieceSide.Player);
 
         int enemyPawnRow = boardHeight - 2;
-        SpawnPiece(pawnPrefab, leftCenterX, enemyPawnRow, PieceSide.Enemy, enemyPawnColor);
-        SpawnPiece(pawnPrefab, rightCenterX, enemyPawnRow, PieceSide.Enemy, enemyPawnColor);
+        SpawnPiece(pawnBlackPrefab, leftCenterX, enemyPawnRow, PieceSide.Enemy);
+        SpawnPiece(pawnBlackPrefab, rightCenterX, enemyPawnRow, PieceSide.Enemy);
     }
 
-    private void SpawnPiece(ChessPiece piecePrefab, int boardX, int boardY, PieceSide side, Color pieceColor)
+    private void SpawnPiece(ChessPiece piecePrefab, int boardX, int boardY, PieceSide side)
     {
         Vector3 spawnPosition = GetWorldPosition(boardX, boardY);
         spawnPosition.z = -1f;
@@ -126,7 +123,7 @@ public class ChessBoard : MonoBehaviour
             transform
         );
 
-        piece.Initialize(boardX, boardY, side, pieceColor);
+        piece.Initialize(boardX, boardY, side);
         pieces[boardX, boardY] = piece;
     }
 
