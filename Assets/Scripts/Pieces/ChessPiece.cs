@@ -1,11 +1,20 @@
 using UnityEngine;
 
+public enum PieceSide
+{
+    Player,
+    Enemy
+}
+
 public class ChessPiece : MonoBehaviour
 {
     public int BoardX { get; private set; }
     public int BoardY { get; private set; }
     public bool IsSelected { get; private set; }
     public bool HasMoved { get; private set; }
+    public PieceSide Side { get; private set; }
+
+    public int ForwardDirection => Side == PieceSide.Player ? 1 : -1;
 
     [Header("Selection")]
     [SerializeField] private Color selectedColor = Color.yellow;
@@ -23,10 +32,13 @@ public class ChessPiece : MonoBehaviour
         }
     }
 
-    public void Initialize(int boardX, int boardY)
+    public void Initialize(int boardX, int boardY, PieceSide side, Color pieceColor)
     {
+        Side = side;
+        SetNormalColor(pieceColor);
         SetBoardPosition(boardX, boardY);
         HasMoved = false;
+        IsSelected = false;
     }
 
     public void SetBoardPosition(int boardX, int boardY)
@@ -34,7 +46,7 @@ public class ChessPiece : MonoBehaviour
         BoardX = boardX;
         BoardY = boardY;
 
-        gameObject.name = $"{GetType().Name}_{boardX}_{boardY}";
+        gameObject.name = $"{Side}_{GetType().Name}_{boardX}_{boardY}";
     }
 
     public void MarkMoved()
@@ -49,6 +61,16 @@ public class ChessPiece : MonoBehaviour
         if (spriteRenderer != null)
         {
             spriteRenderer.color = selected ? selectedColor : normalColor;
+        }
+    }
+
+    private void SetNormalColor(Color color)
+    {
+        normalColor = color;
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = normalColor;
         }
     }
 }
