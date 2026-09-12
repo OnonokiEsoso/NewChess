@@ -13,6 +13,7 @@ public class ChessBoard : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private BoardTile tilePrefab;
+    [SerializeField] private ChessPiece pawnPrefab;
     [SerializeField] private Camera boardCamera;
 
     [Header("Camera Settings")]
@@ -21,6 +22,7 @@ public class ChessBoard : MonoBehaviour
     private void Start()
     {
         CreateBoard();
+        SpawnStartingPawns();
         CenterCameraOnBoard();
     }
 
@@ -30,11 +32,7 @@ public class ChessBoard : MonoBehaviour
         {
             for (int x = 0; x < boardWidth; x++)
             {
-                Vector3 spawnPosition = new Vector3(
-                    x * tileSize,
-                    y * tileSize,
-                    0f
-                );
+                Vector3 spawnPosition = GetWorldPosition(x, y);
 
                 BoardTile tile = Instantiate(
                     tilePrefab,
@@ -49,6 +47,46 @@ public class ChessBoard : MonoBehaviour
                 tile.Initialize(x, y, tileColor);
             }
         }
+    }
+
+    private void SpawnStartingPawns()
+    {
+        if (pawnPrefab == null)
+        {
+            Debug.LogWarning("Pawn Prefabが設定されていません。");
+            return;
+        }
+
+        int pawnRow = 1;
+        int leftCenterX = (boardWidth / 2) - 1;
+        int rightCenterX = boardWidth / 2;
+
+        SpawnPiece(pawnPrefab, leftCenterX, pawnRow);
+        SpawnPiece(pawnPrefab, rightCenterX, pawnRow);
+    }
+
+    private void SpawnPiece(ChessPiece piecePrefab, int boardX, int boardY)
+    {
+        Vector3 spawnPosition = GetWorldPosition(boardX, boardY);
+        spawnPosition.z = -1f;
+
+        ChessPiece piece = Instantiate(
+            piecePrefab,
+            spawnPosition,
+            Quaternion.identity,
+            transform
+        );
+
+        piece.Initialize(boardX, boardY);
+    }
+
+    private Vector3 GetWorldPosition(int boardX, int boardY)
+    {
+        return new Vector3(
+            boardX * tileSize,
+            boardY * tileSize,
+            0f
+        );
     }
 
     private void CenterCameraOnBoard()
