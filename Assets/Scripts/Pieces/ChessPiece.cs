@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum PieceSide
@@ -22,7 +23,7 @@ public class ChessPiece : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     private Color normalColor;
 
-    private void Awake()
+    protected virtual void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
 
@@ -49,7 +50,6 @@ public class ChessPiece : MonoBehaviour
     {
         BoardX = boardX;
         BoardY = boardY;
-
         gameObject.name = $"{Side}_{GetType().Name}_{boardX}_{boardY}";
     }
 
@@ -65,6 +65,53 @@ public class ChessPiece : MonoBehaviour
         if (spriteRenderer != null)
         {
             spriteRenderer.color = selected ? selectedColor : normalColor;
+        }
+    }
+
+    public virtual List<Vector2Int> GetLegalMoves(ChessBoard board)
+    {
+        return new List<Vector2Int>();
+    }
+
+    protected void AddMoveIfValid(ChessBoard board, List<Vector2Int> moves, int x, int y)
+    {
+        if (!board.IsInsideBoard(x, y))
+        {
+            return;
+        }
+
+        ChessPiece target = board.GetPieceAt(x, y);
+        if (target == null || target.Side != Side)
+        {
+            moves.Add(new Vector2Int(x, y));
+        }
+    }
+
+    protected void AddRayMoves(ChessBoard board, List<Vector2Int> moves, int dx, int dy)
+    {
+        int x = BoardX + dx;
+        int y = BoardY + dy;
+
+        while (board.IsInsideBoard(x, y))
+        {
+            ChessPiece target = board.GetPieceAt(x, y);
+
+            if (target == null)
+            {
+                moves.Add(new Vector2Int(x, y));
+            }
+            else
+            {
+                if (target.Side != Side)
+                {
+                    moves.Add(new Vector2Int(x, y));
+                }
+
+                break;
+            }
+
+            x += dx;
+            y += dy;
         }
     }
 }
