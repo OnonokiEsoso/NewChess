@@ -192,13 +192,15 @@ public class GameManager : MonoBehaviour
 
     public void EndRound(PieceSide winner)
     {
-        if (IsMatchOver)
+        if (currentPhase != GamePhase.Battle || IsMatchOver)
         {
             return;
         }
 
         GetState(winner).AddRoundWin();
 
+        // Whatever was deliberately left unspent during preparation can carry forward,
+        // capped independently from capture bonuses.
         whiteState.StoreCarryOver(maxCarryOverPoints);
         blackState.StoreCarryOver(maxCarryOverPoints);
 
@@ -206,18 +208,39 @@ public class GameManager : MonoBehaviour
             $"Round {currentRound} winner: {winner} | Score White {whiteState.RoundWins} - {blackState.RoundWins} Black"
         );
 
-        if (whiteState.RoundWins >= roundsToWin || blackState.RoundWins >= roundsToWin)
+        bool reachedWinTarget =
+            whiteState.RoundWins >= roundsToWin ||
+            blackState.RoundWins >= roundsToWin;
+        bool reachedRoundLimit = currentRound >= maxRounds;
+
+        if (reachedWinTarget || reachedRoundLimit)
         {
             SetPhase(GamePhase.GameOver);
-            Debug.Log($"Match Over! Winner: {winner}");
+            PieceSide matchWinner = GetMatchWinner(winner);
+            Debug.Log(
+                $"Match Over! Winner: {matchWinner} | Final Score White {whiteState.RoundWins} - {blackState.RoundWins} Black"
+            );
             return;
         }
 
         currentRound++;
+        StartCurrentRound();
+    }
 
-        if (currentRound <= maxRounds)
+    private PieceSide GetMatchWinner(PieceSide latestRoundWinner)
+    {
+        if (whiteState.RoundWins > blackState.RoundWins)
         {
-            StartCurrentRound();
+            return PieceSide.Player;
         }
+
+        if (blackState.RoundWins > whiteState.RoundWins)
+        {
+            return PieceSide.Enemy;
+        }
+
+        // A tie is not expected with the current best-of-three rules, but this keeps
+        // the result deterministic if match settings are changed later.
+        return latestRoundWinner;
     }
 }
