@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1498f78bcdb2744994aa5a18b8fb0d6, type: 3}
+  m_Name: Shifter
+  m_EditorClassIdentifier: Assembly-CSharp::PieceDefinition
+  pieceId: shifter
+  displayName: Shifter
+  cost: 3
+  uiSprite: {fileID: 21300000, guid: ef88844a357ffdb43849fa2f1d7cc41a, type: 3}
+  whitePrefab: {fileID: 6808951574773404415, guid: 350c471939ac6154faa3abddfca62d1d, type: 3}
+  blackPrefab: {fileID: 6705117924239073611, guid: b45bf380111d8f24b8dbe4f2280c77ca, type: 3}
+  isKing: 0

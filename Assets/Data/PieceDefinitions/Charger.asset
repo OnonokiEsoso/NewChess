@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1498f78bcdb2744994aa5a18b8fb0d6, type: 3}
+  m_Name: Charger
+  m_EditorClassIdentifier: Assembly-CSharp::PieceDefinition
+  pieceId: charger
+  displayName: Charger
+  cost: 6
+  uiSprite: {fileID: 3758418102606605342, guid: 2825b6fe831649940b6c3e830cc43de5, type: 3}
+  whitePrefab: {fileID: 2345832738329927720, guid: d2174e569a63c6743b8196aeb61c7429, type: 3}
+  blackPrefab: {fileID: 314647983311740143, guid: 3bd592f610714a3499937b3d438cdcea, type: 3}
+  isKing: 0

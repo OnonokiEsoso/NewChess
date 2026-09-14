@@ -73,9 +73,37 @@ public class ChessPiece : MonoBehaviour
         return new List<Vector2Int>();
     }
 
+    public virtual bool CanSwapWith(ChessPiece friendlyPiece)
+    {
+        return false;
+    }
+
+    public virtual bool SelfDestructsAfterCapture => false;
+
+    public virtual void OnCapturedPiece(ChessPiece capturedPiece)
+    {
+    }
+
+    public virtual void OnMoved()
+    {
+    }
+
+    public virtual void OnBattleStarted(ChessBoard board)
+    {
+    }
+
+    public virtual void OnGlobalTurnAdvanced(ChessBoard board, PieceSide sideWhoseTurnStarted)
+    {
+    }
+
     protected void AddMoveIfValid(ChessBoard board, List<Vector2Int> moves, int x, int y)
     {
         if (!board.IsInsideBoard(x, y))
+        {
+            return;
+        }
+
+        if (!board.IsMoveDestinationAllowed(this, x, y))
         {
             return;
         }
@@ -98,11 +126,15 @@ public class ChessPiece : MonoBehaviour
 
             if (target == null)
             {
-                moves.Add(new Vector2Int(x, y));
+                if (board.IsMoveDestinationAllowed(this, x, y))
+                {
+                    moves.Add(new Vector2Int(x, y));
+                }
             }
             else
             {
-                if (target.Side != Side)
+                if (target.Side != Side &&
+                    board.IsMoveDestinationAllowed(this, x, y))
                 {
                     moves.Add(new Vector2Int(x, y));
                 }

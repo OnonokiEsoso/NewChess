@@ -103,7 +103,13 @@ public class GameManager : MonoBehaviour
     public int MaxCarryOverPoints => maxCarryOverPoints;
     public int CaptureBonusPerPiece => captureBonusPerPiece;
     public GamePhase CurrentPhase => currentPhase;
+    public int LastCompletedRound { get; private set; }
+    public PieceSide LastRoundWinner { get; private set; }
+    public PieceSide MatchWinner { get; private set; }
     public event Action<GamePhase> PhaseChanged;
+    public event Action RoundEnded;
+    public event Action MatchEnded;
+    public event Action MatchRestarted;
 
     public bool IsMatchOver =>
         whiteState.RoundWins >= roundsToWin ||
@@ -150,6 +156,9 @@ public class GameManager : MonoBehaviour
     public void StartNewMatch()
     {
         currentRound = 1;
+        LastCompletedRound = 0;
+        LastRoundWinner = PieceSide.Player;
+        MatchWinner = PieceSide.Player;
         whiteState.ResetAll();
         blackState.ResetAll();
         StartCurrentRound();
@@ -198,6 +207,8 @@ public class GameManager : MonoBehaviour
         }
 
         GetState(winner).AddRoundWin();
+        LastCompletedRound = currentRound;
+        LastRoundWinner = winner;
 
         // Whatever was deliberately left unspent during preparation can carry forward,
         // capped independently from capture bonuses.
@@ -215,16 +226,44 @@ public class GameManager : MonoBehaviour
 
         if (reachedWinTarget || reachedRoundLimit)
         {
+            MatchWinner = GetMatchWinner(winner);
             SetPhase(GamePhase.GameOver);
-            PieceSide matchWinner = GetMatchWinner(winner);
             Debug.Log(
-                $"Match Over! Winner: {matchWinner} | Final Score White {whiteState.RoundWins} - {blackState.RoundWins} Black"
+                $"Match Over! Winner: {MatchWinner} | Final Score White {whiteState.RoundWins} - {blackState.RoundWins} Black"
             );
+            MatchEnded?.Invoke();
             return;
+        }
+
+        SetPhase(GamePhase.RoundResult);
+        RoundEnded?.Invoke();
+    }
+
+    public int GetProjectedNextRoundPoints(PieceSide side)
+    {
+        PlayerRoundState state = GetState(side);
+        return basePointsPerRound + state.CarryOverPoints + state.NextRoundCaptureBonus;
+    }
+
+    public bool ContinueToNextRound()
+    {
+        if (currentPhase != GamePhase.RoundResult)
+        {
+            return false;
         }
 
         currentRound++;
         StartCurrentRound();
+        return true;
+    }
+
+    public void RestartMatch()
+    {
+        if (currentPhase == GamePhase.GameOver)
+        {
+            StartNewMatch();
+            MatchRestarted?.Invoke();
+        }
     }
 
     private PieceSide GetMatchWinner(PieceSide latestRoundWinner)

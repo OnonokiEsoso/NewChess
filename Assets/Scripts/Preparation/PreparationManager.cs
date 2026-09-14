@@ -54,12 +54,19 @@ public class PreparationManager : MonoBehaviour
     [SerializeField] private TMP_Text pointsText;
     [SerializeField] private TMP_Text selectedPieceText;
     [SerializeField] private Button readyButton;
+    [SerializeField] private Button reusePreviousLoadoutButton;
 
     [Header("Runtime Placement")]
     [SerializeField] private List<PreparationPiecePlacement> placedPieces =
         new List<PreparationPiecePlacement>();
     [Min(0f)] [SerializeField] private float cpuPlacementDelay = 0.15f;
     [Min(1)] [SerializeField] private int cpuPlacementAttemptLimit = 100;
+
+    [Header("Previous Loadouts")]
+    [SerializeField] private PreparationLoadout previousPlayerLoadout =
+        new PreparationLoadout();
+    [SerializeField] private PreparationLoadout previousEnemyLoadout =
+        new PreparationLoadout();
 
     public PieceDefinition SelectedPieceDefinition { get; private set; }
     public PieceSide CurrentPreparationSide => preparingSide;
@@ -90,11 +97,17 @@ public class PreparationManager : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.PhaseChanged += HandlePhaseChanged;
+            gameManager.MatchRestarted += ClearPreviousLoadouts;
         }
 
         if (readyButton != null)
         {
             readyButton.onClick.AddListener(OnReadyButtonClicked);
+        }
+
+        if (reusePreviousLoadoutButton != null)
+        {
+            reusePreviousLoadoutButton.onClick.AddListener(OnReusePreviousLoadoutClicked);
         }
     }
 
@@ -158,11 +171,17 @@ public class PreparationManager : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.PhaseChanged -= HandlePhaseChanged;
+            gameManager.MatchRestarted -= ClearPreviousLoadouts;
         }
 
         if (readyButton != null)
         {
             readyButton.onClick.RemoveListener(OnReadyButtonClicked);
+        }
+
+        if (reusePreviousLoadoutButton != null)
+        {
+            reusePreviousLoadoutButton.onClick.RemoveListener(OnReusePreviousLoadoutClicked);
         }
 
         if (cpuPreparationRoutine != null)
@@ -245,6 +264,7 @@ public class PreparationManager : MonoBehaviour
         }
 
         PieceSide completedSide = preparingSide;
+        SaveCurrentLoadout(completedSide);
         Debug.Log($"Preparation complete: {completedSide}");
 
         isCpuPreparing = false;
@@ -341,6 +361,20 @@ public class PreparationManager : MonoBehaviour
 
     private bool TryPlaceDefinition(PieceDefinition definition, int boardX, int boardY)
     {
+        return TryPlaceDefinitionWithCost(
+            definition,
+            boardX,
+            boardY,
+            definition != null ? definition.Cost : 0
+        );
+    }
+
+    private bool TryPlaceDefinitionWithCost(
+        PieceDefinition definition,
+        int boardX,
+        int boardY,
+        int cost)
+    {
         if (!IsPreparationActive() ||
             definition == null ||
             chessBoard == null ||
@@ -355,7 +389,7 @@ public class PreparationManager : MonoBehaviour
         ChessPiece prefab = definition.GetPrefab(preparingSide);
         if (prefab == null ||
             gameManager == null ||
-            !gameManager.TrySpendPoints(preparingSide, definition.Cost))
+            !gameManager.TrySpendPoints(preparingSide, cost))
         {
             return false;
         }
@@ -367,7 +401,7 @@ public class PreparationManager : MonoBehaviour
                 preparingSide,
                 out ChessPiece placedPiece))
         {
-            gameManager.RefundPoints(preparingSide, definition.Cost);
+            gameManager.RefundPoints(preparingSide, cost);
             return false;
         }
 
@@ -376,7 +410,7 @@ public class PreparationManager : MonoBehaviour
             placedPiece,
             new Vector2Int(boardX, boardY),
             preparingSide,
-            definition.Cost
+            cost
         ));
 
         RefreshUI();
@@ -431,6 +465,130 @@ public class PreparationManager : MonoBehaviour
     public List<PreparationPiecePlacement> GetPlacements(PieceSide side)
     {
         return placedPieces.FindAll(placement => placement.Side == side);
+    }
+
+    public bool HasPreviousLoadout(PieceSide side)
+    {
+        return GetLoadout(side).HasEntries;
+    }
+
+    public List<PreparationLoadoutEntry> GetPreviousLoadout(PieceSide side)
+    {
+        return GetLoadout(side).CreateCopy();
+    }
+
+    public void SaveCurrentLoadout(PieceSide side)
+    {
+        GetLoadout(side).ReplaceWith(placedPieces, side);
+        RefreshUI();
+    }
+
+    public void ClearPreviousLoadouts()
+    {
+        previousPlayerLoadout.Clear();
+        previousEnemyLoadout.Clear();
+        RefreshUI();
+    }
+
+    public bool ReusePreviousLoadout()
+    {
+        if (!CanReusePreviousLoadout())
+        {
+            return false;
+        }
+
+        List<PreparationLoadoutEntry> snapshot =
+            GetLoadout(preparingSide).CreateCopy();
+        PreparationLoadoutEntry kingEntry = snapshot.Find(entry =>
+            entry.Definition != null && entry.Definition.IsKing
+        );
+
+        if (kingEntry == null || kingEntry.Definition.GetPrefab(preparingSide) == null)
+        {
+            Debug.LogWarning($"Cannot reuse {preparingSide} loadout: King data is missing.");
+            return false;
+        }
+
+        List<PreparationPiecePlacement> currentPlacements =
+            GetPlacements(preparingSide);
+        foreach (PreparationPiecePlacement placement in currentPlacements)
+        {
+            if (placement.Piece != null)
+            {
+                TryRemovePreparationPiece(placement.Piece);
+            }
+        }
+
+        if (!TryPlaceLoadoutEntry(kingEntry))
+        {
+            Debug.LogWarning($"Cannot reuse {preparingSide} loadout: King could not be restored.");
+            RefreshUI();
+            return false;
+        }
+
+        foreach (PreparationLoadoutEntry entry in snapshot)
+        {
+            if (entry == kingEntry ||
+                entry.Definition == null ||
+                entry.Definition.IsKing)
+            {
+                continue;
+            }
+
+            TryPlaceLoadoutEntry(entry);
+        }
+
+        SelectedPieceDefinition = null;
+        RefreshUI();
+        return true;
+    }
+
+    private void OnReusePreviousLoadoutClicked()
+    {
+        ReusePreviousLoadout();
+    }
+
+    private bool TryPlaceLoadoutEntry(PreparationLoadoutEntry entry)
+    {
+        Vector2Int target = entry.BoardPosition;
+        bool originalCellAvailable =
+            chessBoard.IsInsideBoard(target.x, target.y) &&
+            IsInPreparationZone(target.y, preparingSide) &&
+            chessBoard.IsCellEmpty(target.x, target.y);
+
+        if (!originalCellAvailable)
+        {
+            List<Vector2Int> emptyCells = GetEmptyPreparationCells(preparingSide);
+            if (emptyCells.Count == 0)
+            {
+                return false;
+            }
+
+            target = emptyCells[0];
+        }
+
+        return TryPlaceDefinitionWithCost(
+            entry.Definition,
+            target.x,
+            target.y,
+            entry.Cost
+        );
+    }
+
+    private bool CanReusePreviousLoadout()
+    {
+        return IsPreparationActive() &&
+               gameManager.CurrentRound >= 2 &&
+               !isCpuPreparing &&
+               !gameManager.IsRandomCpu(preparingSide) &&
+               HasPreviousLoadout(preparingSide);
+    }
+
+    private PreparationLoadout GetLoadout(PieceSide side)
+    {
+        return side == PieceSide.Player
+            ? previousPlayerLoadout
+            : previousEnemyLoadout;
     }
 
     private void BeginPreparationForSide(PieceSide side)
@@ -627,6 +785,13 @@ public class PreparationManager : MonoBehaviour
         if (readyButton != null)
         {
             readyButton.interactable = humanCanInteract && CanCompletePreparation();
+        }
+
+        if (reusePreviousLoadoutButton != null)
+        {
+            bool canReuse = CanReusePreviousLoadout();
+            reusePreviousLoadoutButton.gameObject.SetActive(canReuse);
+            reusePreviousLoadoutButton.interactable = canReuse;
         }
     }
 }

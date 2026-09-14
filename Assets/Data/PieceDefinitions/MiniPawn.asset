@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1498f78bcdb2744994aa5a18b8fb0d6, type: 3}
+  m_Name: MiniPawn
+  m_EditorClassIdentifier: Assembly-CSharp::PieceDefinition
+  pieceId: minipawn
+  displayName: MiniPawn
+  cost: 1
+  uiSprite: {fileID: 5507303271319108904, guid: 027bb2da3fa80d940830192b9062f99f, type: 3}
+  whitePrefab: {fileID: 2441800657821472034, guid: 4903ddfd5c9523b40a3a063ff06c4545, type: 3}
+  blackPrefab: {fileID: 8201505891612090253, guid: 2ca1431cd20ce4241b085ad678680a11, type: 3}
+  isKing: 0

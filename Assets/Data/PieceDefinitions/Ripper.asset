@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1498f78bcdb2744994aa5a18b8fb0d6, type: 3}
+  m_Name: Ripper
+  m_EditorClassIdentifier: Assembly-CSharp::PieceDefinition
+  pieceId: ripper
+  displayName: Ripper
+  cost: 5
+  uiSprite: {fileID: 21300000, guid: 4b7481e061530b0469f98c9b105b6a17, type: 3}
+  whitePrefab: {fileID: 4880429991296863322, guid: 2370d10b222aeeb4dbf42a9685ff3077, type: 3}
+  blackPrefab: {fileID: 2829744960468555693, guid: b5d960c98b891224487fdf73de12b6c3, type: 3}
+  isKing: 0

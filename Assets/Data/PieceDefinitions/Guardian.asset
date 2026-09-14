@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1498f78bcdb2744994aa5a18b8fb0d6, type: 3}
+  m_Name: Guardian
+  m_EditorClassIdentifier: Assembly-CSharp::PieceDefinition
+  pieceId: guardian
+  displayName: Guardian
+  cost: 4
+  uiSprite: {fileID: 3758418102606605342, guid: 2825b6fe831649940b6c3e830cc43de5, type: 3}
+  whitePrefab: {fileID: 2853675770686251260, guid: 65df42fdce9f34d439cca4cb71d5fc3d, type: 3}
+  blackPrefab: {fileID: 7426848923419021927, guid: 4d0261b628103e64b984c4f291937ab9, type: 3}
+  isKing: 0
