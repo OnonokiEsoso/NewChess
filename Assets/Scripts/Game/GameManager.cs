@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 [System.Serializable]
@@ -68,11 +69,14 @@ public class PlayerRoundState
 
 public class GameManager : MonoBehaviour
 {
+    [Header("Game Phase")]
+    [SerializeField] private GamePhase currentPhase = GamePhase.Preparation;
+
     [Header("White")]
     [SerializeField] private bool whiteRandomCpu;
 
     [Header("Black")]
-    [SerializeField] private bool blackRandomCpu = true;
+    [SerializeField] private bool blackRandomCpu;
 
     [Header("CPU Settings")]
     [SerializeField] private float cpuMoveDelay = 0.6f;
@@ -98,6 +102,8 @@ public class GameManager : MonoBehaviour
     public int BasePointsPerRound => basePointsPerRound;
     public int MaxCarryOverPoints => maxCarryOverPoints;
     public int CaptureBonusPerPiece => captureBonusPerPiece;
+    public GamePhase CurrentPhase => currentPhase;
+    public event Action<GamePhase> PhaseChanged;
 
     public bool IsMatchOver =>
         whiteState.RoundWins >= roundsToWin ||
@@ -153,10 +159,35 @@ public class GameManager : MonoBehaviour
     {
         whiteState.StartRound(basePointsPerRound);
         blackState.StartRound(basePointsPerRound);
+        SetPhase(GamePhase.Preparation);
 
         Debug.Log(
             $"Round {currentRound} start | White: {whiteState.CurrentPoints}pt | Black: {blackState.CurrentPoints}pt"
         );
+    }
+
+    public void StartBattle()
+    {
+        if (currentPhase == GamePhase.Preparation)
+        {
+            SetPhase(GamePhase.Battle);
+        }
+    }
+
+    public void SetGameOver()
+    {
+        SetPhase(GamePhase.GameOver);
+    }
+
+    private void SetPhase(GamePhase phase)
+    {
+        if (currentPhase == phase)
+        {
+            return;
+        }
+
+        currentPhase = phase;
+        PhaseChanged?.Invoke(currentPhase);
     }
 
     public void EndRound(PieceSide winner)
@@ -177,6 +208,7 @@ public class GameManager : MonoBehaviour
 
         if (whiteState.RoundWins >= roundsToWin || blackState.RoundWins >= roundsToWin)
         {
+            SetPhase(GamePhase.GameOver);
             Debug.Log($"Match Over! Winner: {winner}");
             return;
         }

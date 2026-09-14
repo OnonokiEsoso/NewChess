@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1498f78bcdb2744994aa5a18b8fb0d6, type: 3}
+  m_Name: King
+  m_EditorClassIdentifier: Assembly-CSharp::PieceDefinition
+  pieceId: king
+  displayName: King
+  cost: 0
+  uiSprite: {fileID: -492009014791481452, guid: 89cc694ad17ad8948936d8189070352a, type: 3}
+  whitePrefab: {fileID: 7895444394406016982, guid: 666923b917084d044813f3a354b2ef1e, type: 3}
+  blackPrefab: {fileID: 2214529638540410427, guid: 84101d9973eea6f4e8ac84611485d49d, type: 3}
+  isKing: 1

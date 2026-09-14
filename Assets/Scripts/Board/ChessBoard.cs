@@ -56,6 +56,9 @@ public class ChessBoard : MonoBehaviour
     public TurnActionState CurrentTurnActionState => turnActionState;
     public bool IsGameOver => isGameOver;
     public PieceSide Winner => winner;
+    public int BoardWidth => boardWidth;
+    public int BoardHeight => boardHeight;
+    public bool IsInitialized => tiles != null && pieces != null;
 
     private BoardTile[,] tiles;
     private ChessPiece[,] pieces;
@@ -77,13 +80,48 @@ public class ChessBoard : MonoBehaviour
             gameManager = FindFirstObjectByType<GameManager>();
         }
 
+        if (gameManager != null)
+        {
+            gameManager.PhaseChanged += HandleGamePhaseChanged;
+        }
+
         CreateBoard();
-        SpawnStartingPieces();
+        if (gameManager == null || gameManager.CurrentPhase == GamePhase.Battle)
+        {
+            SpawnStartingPieces();
+        }
         CenterCameraOnBoard();
+    }
+
+    private void OnDestroy()
+    {
+        if (gameManager != null)
+        {
+            gameManager.PhaseChanged -= HandleGamePhaseChanged;
+        }
+    }
+
+    private void HandleGamePhaseChanged(GamePhase phase)
+    {
+        if (phase != GamePhase.Battle)
+        {
+            return;
+        }
+
+        currentTurn = PieceSide.Player;
+        turnActionState = TurnActionState.Action;
+        isGameOver = false;
+        cpuIsActing = false;
+        ClearSelection();
     }
 
     private void Update()
     {
+        if (!IsBattlePhase())
+        {
+            return;
+        }
+
         if (isGameOver)
         {
             return;
@@ -157,7 +195,7 @@ public class ChessBoard : MonoBehaviour
         float delay = gameManager != null ? gameManager.CpuMoveDelay : 0.6f;
         yield return new WaitForSeconds(delay);
 
-        if (isGameOver || currentTurn != cpuSide || selectedPiece != chosenPiece)
+        if (!IsBattlePhase() || isGameOver || currentTurn != cpuSide || selectedPiece != chosenPiece)
         {
             cpuIsActing = false;
             yield break;
@@ -371,7 +409,7 @@ public class ChessBoard : MonoBehaviour
 
     private void SelectPiece(ChessPiece piece)
     {
-        if (isGameOver || piece.Side != currentTurn || turnActionState != TurnActionState.Action)
+        if (!IsBattlePhase() || isGameOver || piece.Side != currentTurn || turnActionState != TurnActionState.Action)
         {
             return;
         }
@@ -420,7 +458,7 @@ public class ChessBoard : MonoBehaviour
 
     private void MoveSelectedPiece(int targetX, int targetY)
     {
-        if (isGameOver || selectedPiece == null || turnActionState != TurnActionState.Action)
+        if (!IsBattlePhase() || isGameOver || selectedPiece == null || turnActionState != TurnActionState.Action)
         {
             return;
         }
@@ -471,6 +509,7 @@ public class ChessBoard : MonoBehaviour
         isGameOver = true;
         cpuIsActing = false;
         ClearSelection();
+        gameManager?.SetGameOver();
 
         Debug.Log($"Game Over! Winner: {winner}");
     }
@@ -546,6 +585,88 @@ public class ChessBoard : MonoBehaviour
         }
 
         return pieces[x, y];
+    }
+
+    public bool IsCellEmpty(int x, int y)
+    {
+        return IsInsideBoard(x, y) && pieces != null && pieces[x, y] == null;
+    }
+
+    public bool PlacePreparationPiece(
+        ChessPiece piecePrefab,
+        int boardX,
+        int boardY,
+        PieceSide side,
+        out ChessPiece placedPiece)
+    {
+        placedPiece = null;
+
+        if (piecePrefab == null ||
+            gameManager == null ||
+            gameManager.CurrentPhase != GamePhase.Preparation ||
+            !IsCellEmpty(boardX, boardY))
+        {
+            return false;
+        }
+
+        Vector3 spawnPosition = GetWorldPosition(boardX, boardY);
+        spawnPosition.z = -1f;
+
+        placedPiece = Instantiate(
+            piecePrefab,
+            spawnPosition,
+            Quaternion.identity,
+            transform
+        );
+
+        placedPiece.Initialize(boardX, boardY, side);
+        pieces[boardX, boardY] = placedPiece;
+        return true;
+    }
+
+    public bool RemovePreparationPiece(ChessPiece piece)
+    {
+        if (piece == null ||
+            gameManager == null ||
+            gameManager.CurrentPhase != GamePhase.Preparation ||
+            !IsInsideBoard(piece.BoardX, piece.BoardY) ||
+            pieces[piece.BoardX, piece.BoardY] != piece)
+        {
+            return false;
+        }
+
+        pieces[piece.BoardX, piece.BoardY] = null;
+        Destroy(piece.gameObject);
+        return true;
+    }
+
+    public void SetPreparationZoneHighlight(PieceSide side, bool highlighted)
+    {
+        if (tiles == null)
+        {
+            return;
+        }
+
+        int firstRow = side == PieceSide.Player ? 0 : boardHeight - 2;
+        int lastRow = side == PieceSide.Player ? 1 : boardHeight - 1;
+
+        for (int y = 0; y < boardHeight; y++)
+        {
+            for (int x = 0; x < boardWidth; x++)
+            {
+                if (tiles[x, y] != null)
+                {
+                    tiles[x, y].SetPreparationHighlight(
+                        highlighted && y >= firstRow && y <= lastRow
+                    );
+                }
+            }
+        }
+    }
+
+    private bool IsBattlePhase()
+    {
+        return gameManager == null || gameManager.CurrentPhase == GamePhase.Battle;
     }
 
     private Vector3 GetWorldPosition(int boardX, int boardY)

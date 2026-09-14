@@ -9,9 +9,11 @@ public class BoardTile : MonoBehaviour
 
     [Header("Highlight")]
     [SerializeField] private Color moveHighlightColor = new Color(0.35f, 0.9f, 0.35f, 1f);
+    [SerializeField] private Color preparationHighlightColor = new Color(0.25f, 0.65f, 1f, 1f);
 
     private SpriteRenderer spriteRenderer;
     private Color normalColor;
+    private bool isPreparationHighlighted;
 
     private void Awake()
     {
@@ -31,6 +33,26 @@ public class BoardTile : MonoBehaviour
     public void SetMoveHighlight(bool highlighted)
     {
         IsHighlighted = highlighted;
-        spriteRenderer.color = highlighted ? moveHighlightColor : normalColor;
+        RefreshColor();
+    }
+
+    public void SetPreparationHighlight(bool highlighted)
+    {
+        isPreparationHighlighted = highlighted;
+        RefreshColor();
+    }
+
+    private void RefreshColor()
+    {
+        if (IsHighlighted)
+        {
+            spriteRenderer.color = moveHighlightColor;
+        }
+        else
+        {
+            spriteRenderer.color = isPreparationHighlighted
+                ? Color.Lerp(normalColor, preparationHighlightColor, 0.35f)
+                : normalColor;
+        }
     }
 }
