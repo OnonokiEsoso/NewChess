@@ -103,6 +103,12 @@ public class ChessBoard : MonoBehaviour
 
     private void HandleGamePhaseChanged(GamePhase phase)
     {
+        if (phase == GamePhase.Preparation)
+        {
+            ResetBoardForPreparation();
+            return;
+        }
+
         if (phase != GamePhase.Battle)
         {
             return;
@@ -113,6 +119,17 @@ public class ChessBoard : MonoBehaviour
         isGameOver = false;
         cpuIsActing = false;
         ClearSelection();
+    }
+
+    private void ResetBoardForPreparation()
+    {
+        StopAllCoroutines();
+        cpuIsActing = false;
+        isGameOver = false;
+        currentTurn = PieceSide.Player;
+        turnActionState = TurnActionState.Action;
+        ClearSelection();
+        ClearAllPieces();
     }
 
     private void Update()
@@ -475,6 +492,7 @@ public class ChessBoard : MonoBehaviour
             }
 
             capturedKing = targetPiece is KingPiece;
+            gameManager?.RegisterCapture(selectedPiece.Side);
 
             Destroy(targetPiece.gameObject);
             pieces[targetX, targetY] = null;
@@ -509,9 +527,17 @@ public class ChessBoard : MonoBehaviour
         isGameOver = true;
         cpuIsActing = false;
         ClearSelection();
-        gameManager?.SetGameOver();
 
-        Debug.Log($"Game Over! Winner: {winner}");
+        Debug.Log($"Round Over! Winner: {winner}");
+
+        if (gameManager != null)
+        {
+            gameManager.EndRound(winningSide);
+        }
+        else
+        {
+            Debug.Log($"Game Over! Winner: {winner}");
+        }
     }
 
     private void RequestTurnChange()
@@ -638,6 +664,27 @@ public class ChessBoard : MonoBehaviour
         pieces[piece.BoardX, piece.BoardY] = null;
         Destroy(piece.gameObject);
         return true;
+    }
+
+    public void ClearAllPieces()
+    {
+        if (pieces == null)
+        {
+            return;
+        }
+
+        for (int y = 0; y < boardHeight; y++)
+        {
+            for (int x = 0; x < boardWidth; x++)
+            {
+                ChessPiece piece = pieces[x, y];
+                if (piece != null)
+                {
+                    Destroy(piece.gameObject);
+                    pieces[x, y] = null;
+                }
+            }
+        }
     }
 
     public void SetPreparationZoneHighlight(PieceSide side, bool highlighted)
