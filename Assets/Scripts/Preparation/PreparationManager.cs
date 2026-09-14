@@ -113,7 +113,6 @@ public class PreparationManager : MonoBehaviour
 
     private void Start()
     {
-        RebuildPieceList();
         BeginPreparationForSide(PieceSide.Player);
     }
 
@@ -226,7 +225,9 @@ public class PreparationManager : MonoBehaviour
 
         for (int i = pieceListParent.childCount - 1; i >= 0; i--)
         {
-            Destroy(pieceListParent.GetChild(i).gameObject);
+            GameObject oldEntry = pieceListParent.GetChild(i).gameObject;
+            oldEntry.SetActive(false);
+            Destroy(oldEntry);
         }
 
         foreach (PieceDefinition definition in pieceDefinitions)
@@ -239,7 +240,7 @@ public class PreparationManager : MonoBehaviour
             PieceEntryUI entry = Instantiate(pieceEntryPrefab, pieceListParent);
             entry.name = $"{definition.DisplayName}Entry";
             entry.gameObject.SetActive(true);
-            entry.Initialize(definition, SelectPiece);
+            entry.Initialize(definition, preparingSide, SelectPiece);
         }
     }
 
@@ -606,6 +607,7 @@ public class PreparationManager : MonoBehaviour
         preparingSide = side;
         SelectedPieceDefinition = null;
         isCpuPreparing = gameManager != null && gameManager.IsRandomCpu(side);
+        RebuildPieceList();
         RefreshUI();
         RefreshPreparationHighlight();
 
