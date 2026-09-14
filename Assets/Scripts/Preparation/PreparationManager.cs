@@ -70,6 +70,7 @@ public class PreparationManager : MonoBehaviour
 
     private bool isCpuPreparing;
     private Coroutine cpuPreparationRoutine;
+    private Coroutine nextRoundPreparationRoutine;
 
     private void Awake()
     {
@@ -170,6 +171,12 @@ public class PreparationManager : MonoBehaviour
             cpuPreparationRoutine = null;
         }
 
+        if (nextRoundPreparationRoutine != null)
+        {
+            StopCoroutine(nextRoundPreparationRoutine);
+            nextRoundPreparationRoutine = null;
+        }
+
         isCpuPreparing = false;
     }
 
@@ -264,9 +271,42 @@ public class PreparationManager : MonoBehaviour
             SelectedPieceDefinition = null;
             isCpuPreparing = false;
         }
+        else if (phase == GamePhase.Preparation)
+        {
+            // A new round has started. The board also receives the phase event and clears
+            // the previous battle pieces. Wait one frame before starting white preparation
+            // so CPU preparation can never race the board cleanup subscriber order.
+            if (cpuPreparationRoutine != null)
+            {
+                StopCoroutine(cpuPreparationRoutine);
+                cpuPreparationRoutine = null;
+            }
+
+            isCpuPreparing = false;
+            SelectedPieceDefinition = null;
+            placedPieces.Clear();
+
+            if (nextRoundPreparationRoutine != null)
+            {
+                StopCoroutine(nextRoundPreparationRoutine);
+            }
+
+            nextRoundPreparationRoutine = StartCoroutine(BeginNextRoundPreparation());
+        }
 
         RefreshUI();
         RefreshPreparationHighlight();
+    }
+
+    private IEnumerator BeginNextRoundPreparation()
+    {
+        yield return null;
+        nextRoundPreparationRoutine = null;
+
+        if (IsPreparationActive())
+        {
+            BeginPreparationForSide(PieceSide.Player);
+        }
     }
 
     public bool IsInPreparationZone(int boardY, PieceSide side)
